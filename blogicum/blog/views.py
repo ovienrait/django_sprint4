@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
@@ -19,8 +17,7 @@ def get_paginator(request, queryset, number_of_pages=NUMBER_OF_PUBLICATIONS):
 
 def index(request):
     """Отображение ленты публикаций"""
-    posts = Post.objects.get_published().annotate(
-        comment_count=Count('comments')).order_by('-pub_date')
+    posts = Post.objects.get_published()
     page_obj = get_paginator(request, posts)
     return render(request, 'blog/index.html', {'page_obj': page_obj})
 
@@ -30,9 +27,9 @@ def category_posts(request, category_slug):
     category = get_object_or_404(
         Category,
         slug=category_slug,
-        is_published=True)
-    posts = Post.objects.get_published().filter(category=category).annotate(
-        comment_count=Count('comments')).order_by('-pub_date')
+        is_published=True
+    )
+    posts = category.posts.get_published()
     page_obj = get_paginator(request, posts)
     return render(request, 'blog/category.html',
                   {'category': category, 'page_obj': page_obj})
@@ -42,12 +39,8 @@ def post_detail(request, post_id):
     """Отображение карточки публикации"""
     post = get_object_or_404(Post, id=post_id)
     if request.user != post.author:
-        post = get_object_or_404(
-            Post,
-            id=post_id,
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=datetime.now())
+        post = get_object_or_404(Post.objects.get_published(
+        ).filter(id=post_id))
     form = CommentForm(request.POST or None)
     comments = Comment.objects.select_related(
         'author').filter(post=post)
@@ -135,10 +128,7 @@ def delete_comment(request, post_id, comment_id):
 def profile(request, username):
     """Отображение профиля пользователя"""
     profile = get_object_or_404(User, username=username)
-    posts = Post.objects.select_related(
-        'category', 'location', 'author'
-    ).annotate(comment_count=Count('comments')
-               ).filter(author=profile).order_by('-pub_date')
+    posts = Post.objects.get_posts().filter(author=profile)
     if request.user != profile:
         posts = Post.objects.get_published().annotate(
             comment_count=Count('comments')).order_by('-pub_date')

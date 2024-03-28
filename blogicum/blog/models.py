@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db.models import Count
 
 from core.models import CoreModel
 from .constants import TITLE_FIELD_LENGTH
@@ -9,10 +10,13 @@ User = get_user_model()
 
 
 class PostManager(models.Manager):
-    def get_published(self):
-        return super().get_queryset().select_related(
+    def get_posts(self):
+        return self.select_related(
             'category', 'location', 'author'
-        ).filter(
+        ).annotate(comment_count=Count('comments')).order_by('-pub_date')
+
+    def get_published(self):
+        return self.get_posts().filter(
             pub_date__lte=timezone.now(),
             is_published=True,
             category__is_published=True
@@ -20,6 +24,8 @@ class PostManager(models.Manager):
 
 
 class Post(CoreModel):
+    """Модель, описывающая поля публикаций"""
+
     objects = PostManager()
 
     title = models.CharField(
@@ -67,7 +73,6 @@ class Post(CoreModel):
     )
 
     class Meta:
-        ordering = ('-pub_date',)
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
 
@@ -76,6 +81,8 @@ class Post(CoreModel):
 
 
 class Category(CoreModel):
+    """Модель, описывающая поля категорий"""
+
     title = models.CharField(
         max_length=TITLE_FIELD_LENGTH,
         verbose_name='Заголовок'
@@ -101,6 +108,8 @@ class Category(CoreModel):
 
 
 class Location(CoreModel):
+    """Модель, описывающая поля мест"""
+
     name = models.CharField(
         max_length=TITLE_FIELD_LENGTH,
         verbose_name='Название места'
@@ -115,6 +124,8 @@ class Location(CoreModel):
 
 
 class Comment(models.Model):
+    """Модель, описывающая поля комментариев"""
+
     text = models.TextField(
         max_length=300,
         verbose_name='Текст комментария',
