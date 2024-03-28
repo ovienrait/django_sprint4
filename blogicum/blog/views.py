@@ -1,6 +1,5 @@
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
 
 from .forms import PostForm, CommentForm, UserForm
@@ -130,7 +129,7 @@ def profile(request, username):
     profile = get_object_or_404(User, username=username)
     posts = Post.objects.get_posts().filter(author=profile)
     if request.user != profile:
-        posts = Post.objects.get_published()
+        posts = Post.objects.get_published().filter(author=profile)
     page_obj = get_paginator(request, posts)
     return render(request, 'blog/profile.html',
                   {'profile': profile, 'page_obj': page_obj})
