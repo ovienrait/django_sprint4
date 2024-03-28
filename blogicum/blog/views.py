@@ -130,8 +130,7 @@ def profile(request, username):
     profile = get_object_or_404(User, username=username)
     posts = Post.objects.get_posts().filter(author=profile)
     if request.user != profile:
-        posts = Post.objects.get_published().annotate(
-            comment_count=Count('comments')).order_by('-pub_date')
+        posts = Post.objects.get_published()
     page_obj = get_paginator(request, posts)
     return render(request, 'blog/profile.html',
                   {'profile': profile, 'page_obj': page_obj})
